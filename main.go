@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"html/template"
+	"log"
 	"net/http"
+	"path/filepath"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/v5/middleware"
@@ -14,7 +17,6 @@ func main() {
 	r.Get("/", homeHandler)
 	r.Get("/contact", contactHandler)
 	r.Get("/faq", faqHandler)
-	r.Get("/getNome/{nome}", getnome)
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Page not found", http.StatusNotFound)
 	})
@@ -22,34 +24,17 @@ func main() {
 	http.ListenAndServe(":3000", r)
 }
 
-func getnome(w http.ResponseWriter, r *http.Request) {
-	nome := chi.URLParam(r, "nome")
-	fmt.Fprint(w, "Bom dia "+nome)
-}
-
-func pathHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.URL.Path {
-	case "/":
-		homeHandler(w, r)
-	case "/contact":
-		contactHandler(w, r)
-	case "/faq":
-		faqHandler(w, r)
-	default:
-		http.Error(w, "page not found", http.StatusNotFound)
-	}
-}
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprint(w, "<h1>Welcome to my awesome site!</h1>")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	tplPath := filepath.Join("templates", "home.gohtml")
+	executeTemplate(w, tplPath)
+
 }
 
 func contactHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-	fmt.Fprint(w, `<h1>Contact Page</h1>
-	<p>To get in touch, email me at <a href=\\"mailto:andre.gasparoni@outlook.com\\">andre.gasparoni@outlook.com</a></p>`)
-
+	tplPath := filepath.Join("templates", "contact.gohtml")
+	executeTemplate(w, tplPath)
 }
 
 func faqHandler(w http.ResponseWriter, r *http.Request) {
@@ -73,4 +58,18 @@ Email us - <a href="mailto:support@lenslocked.com">support@lenslocked.com</a>
 `)
 }
 
-//81
+func executeTemplate(w http.ResponseWriter, filepath string) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	tpl, err := template.ParseFiles(filepath)
+	if err != nil {
+		log.Printf("processing template: %v", err)
+		http.Error(w, "There was an error processing the template.", http.StatusInternalServerError)
+		return
+	}
+	if err = tpl.Execute(w, nil); err != nil {
+		http.Error(w, "There was an error executing the template.", http.StatusInternalServerError)
+		return
+	}
+}
+
+//130
